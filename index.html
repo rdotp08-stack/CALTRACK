@@ -1,182 +1,188 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Calorie & BMR Fat-loss Checker</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;padding:20px;background:#f7fafc;color:#0f172a}
-    header{display:flex;justify-content:space-between;align-items:center}
-    .card{background:white;border-radius:10px;padding:16px;box-shadow:0 6px 20px rgba(2,6,23,0.08);margin-top:16px}
-    label{display:block;margin-top:8px;font-size:14px}
-    input,select{padding:8px;border-radius:6px;border:1px solid #e6edf3;width:100%;box-sizing:border-box}
-    .row{display:flex;gap:12px}
-    .row > *{flex:1}
-    button{background:#0ea5a4;color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
-    table{width:100%;border-collapse:collapse;margin-top:12px}
-    th,td{padding:8px;border-bottom:1px solid #eef2f7;text-align:left}
-    small{color:#64748b}
-    .muted{color:#64748b;font-size:13px}
-    .danger{background:#ef4444}
-    .success{background:#16a34a}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:#f7fafc;
+      margin:0;
+      padding:20px;
+      color:#0f172a
+    }
+    .card{
+      background:#fff;
+      padding:16px;
+      border-radius:12px;
+      margin-bottom:16px;
+      box-shadow:0 5px 20px rgba(0,0,0,0.06)
+    }
+    input,select,button{
+      width:100%;
+      padding:10px;
+      margin-top:6px;
+      border-radius:8px;
+      border:1px solid #e5e7eb
+    }
+    button{
+      background:#0ea5a4;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer
+    }
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid #eee}
+    .result{font-weight:600;margin-top:10px}
   </style>
 </head>
 <body>
-  <header>
-    <h1>Calorie & BMR Fat-loss Checker</h1>
-    <div class="muted">Stores data locally in your browser</div>
-  </header>
 
-  <section class="card">
-    <h3>4) Weight Goal Tracker</h3>
-    <label>Current Weight (kg)
-      <input id="currentWeight" type="number" step="0.1" />
-    </label>
-    <label>Target Weight (kg)
-      <input id="targetWeight" type="number" step="0.1" value="50" />
-    </label>
-    <label>Target Date
-      <input id="targetDate" type="date" value="2026-02-01" />
-    </label>
-    <div id="goalResult" style="margin-top:10px;font-weight:700"></div>
-  </section>
+<h1>Calorie & BMR Fat-loss Checker</h1>
 
-  <script>
-    // utilities
-    const $ = id => document.getElementById(id);
+<div class="card">
+  <h3>1) BMR Calculator</h3>
+  <label>Sex</label>
+  <select id="sex">
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+  </select>
+  <label>Age</label>
+  <input type="number" id="age" value="18">
+  <label>Weight (kg)</label>
+  <input type="number" id="weight" step="0.1" value="61">
+  <label>Height (cm)</label>
+  <input type="number" id="height" step="0.1" value="165">
 
-    // default viewDate to today
-    const todayStr = new Date().toISOString().slice(0,10);
-    $('mealDate').value = todayStr;
-    $('viewDate').value = todayStr;
+  <button onclick="calcBMR()">Calculate BMR</button>
+  <div class="result" id="bmrResult"></div>
+</div>
 
-    // storage key
-    // goal calculation
-    function updateGoal(){
-      const cw = parseFloat($('currentWeight').value);
-      const tw = parseFloat($('targetWeight').value);
-      const td = new Date($('targetDate').value);
-      const now = new Date();
-      const days = Math.max(1, Math.ceil((td - now)/(1000*60*60*24)));
-      if(isNaN(cw)||isNaN(tw)) return;
-      const diff = cw - tw;
-      const perWeek = (diff / (days/7)).toFixed(2);
-      $('goalResult').textContent = `Need to lose ${diff.toFixed(1)} kg in ${days} days (~${perWeek} kg/week)`;
-    }
+<div class="card">
+  <h3>2) Meal Logger</h3>
+  <label>Date</label>
+  <input type="date" id="mealDate">
 
-    const STORAGE_KEY = 'calorie_tracker_entries_v1';
+  <label>Meal</label>
+  <input type="text" id="mealName">
 
-    function loadEntries(){
-      try{
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      }catch(e){return []}
-    }
-    function saveEntries(list){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    }
+  <label>Calories (kcal)</label>
+  <input type="number" id="mealCalories">
 
-    function addMeal(){
-      const date = $('mealDate').value;
-      const name = $('mealName').value.trim();
-      const cals = parseInt($('mealCalories').value,10);
-      if(!date || !name || isNaN(cals)){
-        alert('Please fill date, meal name, and calories.'); return;
-      }
-      const entries = loadEntries();
-      entries.push({id:Date.now(),date,name,calories:cals});
-      saveEntries(entries);
-      $('mealName').value=''; $('mealCalories').value='';
-      renderTable();
-      updateSummary();
-    }
+  <button onclick="addMeal()">Add Meal</button>
 
-    function renderTable(){
-      const tbody = document.querySelector('#mealsTable tbody');
-      tbody.innerHTML='';
-      const entries = loadEntries().sort((a,b)=>b.date.localeCompare(a.date)||b.id-b.id);
-      for(const e of entries){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${e.date}</td><td>${escapeHtml(e.name)}</td><td>${e.calories}</td><td><button data-id="${e.id}" class="delBtn">Delete</button></td>`;
-        tbody.appendChild(tr);
-      }
-      // attach delete
-      document.querySelectorAll('.delBtn').forEach(btn=>btn.onclick=()=>{
-        const id = Number(btn.dataset.id);
-        const filtered = loadEntries().filter(x=>x.id!==id);
-        saveEntries(filtered);
-        renderTable(); updateSummary();
-      })
-    }
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Meal</th><th>Calories</th></tr>
+    </thead>
+    <tbody id="mealTable"></tbody>
+  </table>
+</div>
 
-    function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+<div class="card">
+  <h3>3) Daily Results</h3>
+  <label>View Date</label>
+  <input type="date" id="viewDate">
 
-    function calcBMR(){
-      const sex = $('sex').value;
-      const age = Number($('age').value);
-      const weight = Number($('weight').value);
-      const height = Number($('height').value);
-      if(!age || !weight || !height){ alert('Fill age, weight, height.'); return null }
-      // Mifflin-St Jeor
-      let bmr = 10*weight + 6.25*height - 5*age + (sex==='male'?5:-161);
-      bmr = Math.round(bmr);
-      $('bmrResult').textContent = bmr + ' kcal/day';
-      $('bmrVal').textContent = bmr + ' kcal/day';
-      updateSummary();
-      return bmr;
-    }
+  <div class="result">Total Calories: <span id="totalCals">0</span> kcal</div>
+  <div class="result">BMR: <span id="bmrVal">0</span> kcal</div>
+  <div class="result">Deficit: <span id="deficitVal">0</span> kcal</div>
+  <div class="result" id="statusText"></div>
+</div>
 
-    function updateSummary(){
-      const viewDate = $('viewDate').value;
-      const entries = loadEntries().filter(e=>e.date===viewDate);
-      const total = entries.reduce((s,e)=>s+Number(e.calories),0);
-      $('totalCals').textContent = total;
-      const bmr = parseInt($('bmrVal').textContent) || calcBMR() || 0;
-      const deficit = bmr - total;
-      $('deficitVal').textContent = deficit;
-      const interp = $('interpretation');
-      if(deficit>0){
-        interp.textContent = `You are below estimated BMR by ${deficit} kcal on ${viewDate}. If sustained, this indicates a calorie deficit compared to your BMR — you may lose fat over time.`;
-        interp.style.color = '#16a34a';
-      } else if(deficit===0){
-        interp.textContent = `You consumed about your estimated BMR.`; interp.style.color='#0f172a';
-      } else {
-        interp.textContent = `You consumed ${-deficit} kcal more than your estimated BMR on ${viewDate}. That's a calorie surplus vs BMR.`; interp.style.color='#ef4444';
-      }
+<div class="card">
+  <h3>4) Weight Goal Tracker</h3>
+  <label>Current Weight (kg)</label>
+  <input type="number" id="currentWeight" value="61" step="0.1">
 
-      // show simple summary of meals
-      const summaryDiv = $('summary');
-      if(entries.length===0){ summaryDiv.innerHTML = '<small class="muted">No meals logged for selected date.</small>'; }
-      else{
-        summaryDiv.innerHTML = '<strong>Meals for '+viewDate+':</strong> ' + entries.map(e=>`${escapeHtml(e.name)} (${e.calories} kcal)`).join(' • ');
-      }
-    }
+  <label>Target Weight (kg)</label>
+  <input type="number" id="targetWeight" value="50" step="0.1">
 
-    // export CSV
-    function exportCsv(){
-      const entries = loadEntries();
-      if(entries.length===0){ alert('No entries to export.'); return }
-      const header = ['date','meal','calories'];
-      const rows = entries.map(e=>[e.date,`"${e.name.replace(/"/g,'""') }"`,e.calories]);
-      const csv = [header.join(','),...rows.map(r=>r.join(','))].join('\n');
-      const blob = new Blob([csv],{type:'text/csv'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='calorie_entries.csv'; a.click(); URL.revokeObjectURL(url);
-    }
+  <label>Target Date</label>
+  <input type="date" id="targetDate" value="2026-02-01">
 
-    // clear all
-    function clearAll(){ if(confirm('Clear all saved meal entries?')){ localStorage.removeItem(STORAGE_KEY); renderTable(); updateSummary(); } }
+  <button onclick="updateGoal()">Update Goal</button>
+  <div class="result" id="goalResult"></div>
+</div>
 
-    // events
-    $('addMeal').onclick = addMeal;
-    $('calcBmr').onclick = calcBMR;
-    $('viewDate').onchange = updateSummary;
-    $('exportCsv').onclick = exportCsv;
-    $('clearAll').onclick = clearAll;
+<script>
+let meals = [];
 
-    // initial
-    renderTable(); calcBMR(); updateSummary();
-  </script>
+document.getElementById("mealDate").valueAsDate = new Date();
+document.getElementById("viewDate").valueAsDate = new Date();
+
+function calcBMR(){
+  const sex=document.getElementById("sex").value;
+  const age=+document.getElementById("age").value;
+  const weight=+document.getElementById("weight").value;
+  const height=+document.getElementById("height").value;
+
+  let bmr = 10*weight + 6.25*height - 5*age + (sex==="male"?5:-161);
+  document.getElementById("bmrResult").innerText = "BMR: "+Math.round(bmr)+" kcal";
+  document.getElementById("bmrVal").innerText = Math.round(bmr);
+  updateResults();
+}
+
+function addMeal(){
+  const date=document.getElementById("mealDate").value;
+  const name=document.getElementById("mealName").value;
+  const cal=+document.getElementById("mealCalories").value;
+  if(!date||!name||!cal) return;
+
+  meals.push({date,name,cal});
+  renderMeals();
+  updateResults();
+
+  document.getElementById("mealName").value="";
+  document.getElementById("mealCalories").value="";
+}
+
+function renderMeals(){
+  const tbody=document.getElementById("mealTable");
+  tbody.innerHTML="";
+  meals.forEach(m=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${m.date}</td><td>${m.name}</td><td>${m.cal}</td>`;
+    tbody.appendChild(tr);
+  })
+}
+
+function updateResults(){
+  const viewDate=document.getElementById("viewDate").value;
+  const total = meals.filter(m=>m.date===viewDate).reduce((s,m)=>s+m.cal,0);
+  document.getElementById("totalCals").innerText=total;
+
+  const bmr=+document.getElementById("bmrVal").innerText||0;
+  const deficit=bmr-total;
+  document.getElementById("deficitVal").innerText=deficit;
+
+  const status=document.getElementById("statusText");
+  if(deficit>0){
+    status.innerText="You are in a calorie deficit ✅";
+    status.style.color="green";
+  }else{
+    status.innerText="You are in a calorie surplus ❌";
+    status.style.color="red";
+  }
+}
+
+function updateGoal(){
+  const cw=+document.getElementById("currentWeight").value;
+  const tw=+document.getElementById("targetWeight").value;
+  const td=new Date(document.getElementById("targetDate").value);
+  const now=new Date();
+
+  const diff=cw-tw;
+  const days=Math.max(1,Math.ceil((td-now)/(1000*60*60*24)));
+  const perWeek=(diff/(days/7)).toFixed(2);
+
+  document.getElementById("goalResult").innerText =
+    `Need to lose ${diff} kg in ${days} days (~${perWeek} kg/week)`;
+}
+
+calcBMR();
+</script>
+
 </body>
 </html>
-
-
