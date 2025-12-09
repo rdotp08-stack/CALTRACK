@@ -1,64 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calorie & BMR Fat-loss Checker</title>
-  <style>
-    body{
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background:#f7fafc;
-      margin:0;
-      padding:16px;
-      color:#0f172a
-    }
-    h1{margin-bottom:10px}
-    hr{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
-    label{font-weight:600;font-size:14px}
-    input,select,button{
-      width:100%;
-      padding:10px;
-      margin:6px 0 12px;
-      border-radius:8px;
-      border:1px solid #e5e7eb
-    }
-    button{
-      background:#0ea5a4;
-      color:#fff;
-      font-weight:600;
-      cursor:pointer
-    }
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
-    .danger{background:#ef4444}
-    .delete-btn{background:#ef4444}
-    .result{font-weight:600;margin:6px 0}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calorie & BMR Fat-loss Checker — Full Version</title>
+<style>
+  body{
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    background:#f4f4f5;
+    color:#0f172a;
+    margin:0;padding:16px;
+    transition:0.3s;
+  }
+  .dark{background:#0f172a;color:#f4f4f5;}
+  h1{font-size:22px;margin-bottom:10px}
+  label{font-weight:600;font-size:14px}
+  input,select,button{
+    width:100%;padding:10px;margin:6px 0 12px;
+    border-radius:10px;border:1px solid #d4d4d8;
+    font-size:14px;
+  }
+  button{background:#0ea5a4;color:#fff;font-weight:600;cursor:pointer}
+  .delete-btn{background:#ef4444;color:white;border:none;padding:6px 10px;border-radius:6px}
+  .section{margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #e5e7eb}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}
+  .toggle{margin:10px 0;font-size:14px;font-weight:600;cursor:pointer}
+  canvas{margin-top:25px}
+</style>
 </head>
 <body>
 
 <h1>Calorie & BMR Fat-loss Checker</h1>
+<button onclick="toggleDarkMode()">Toggle Dark Mode 🌙</button>
+
+<div class="section">
+<label>Use Custom BMR?</label>
+<select id="bmrMode" onchange="updateBMRMode()">
+  <option value="calc">Use Calculated BMR</option>
+  <option value="custom">Use Custom BMR</option>
+</select>
 
 <label>Sex</label>
-<select id="sex">
-  <option value="male">Male</option>
-  <option value="female">Female</option>
-</select>
+<select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
 
 <label>Age</label>
 <input type="number" id="age" value="18">
 
 <label>Weight (kg)</label>
-<input type="number" id="weight" step="0.1" value="61">
+<input type="number" id="weight" value="61" step="0.1">
 
 <label>Height (cm)</label>
-<input type="number" id="height" step="0.1" value="165">
+<input type="number" id="height" value="165" step="0.1">
 
 <button onclick="calcBMR()">Calculate BMR</button>
-<div class="result" id="bmrResult"></div>
+<div id="bmrResult"></div>
 
-<hr>
+<label>Custom BMR</label>
+<input type="number" id="customBmr" oninput="applyCustomBMR()">
+<div id="bmrWarning" style="color:red;font-weight:600"></div>
+</div>
 
+<div class="section">
 <label>Meal Date</label>
 <input type="date" id="mealDate">
 
@@ -71,129 +74,210 @@
 <button onclick="addMeal()">Add Meal</button>
 
 <table>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Meal</th>
-      <th>Calories</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody id="mealTable"></tbody>
+<thead><tr><th>Date</th><th>Meal</th><th>Calories</th><th>Edit</th><th>Delete</th></tr></thead>
+<tbody id="mealTable"></tbody>
 </table>
+</div>
 
-<hr>
-
+<div class="section">
 <label>View Date</label>
-<input type="date" id="viewDate">
+<input type="date" id="viewDate" onchange="updateResults()">
 
-<div class="result">Total Calories: <span id="totalCals">0</span> kcal</div>
-<div class="result">BMR: <span id="bmrVal">0</span> kcal</div>
-<div class="result">Deficit: <span id="deficitVal">0</span> kcal</div>
-<div class="result" id="statusText"></div>
+<div>Total Calories: <span id="totalCals">0</span> kcal</div>
+<div>BMR: <span id="bmrVal">0</span> kcal</div>
+<div>Deficit: <span id="deficitVal">0</span> kcal</div>
+<div id="statusText" style="font-weight:600"></div>
+</div>
 
-<hr>
-
+<div class="section">
+<h3>Weight Goal</h3>
 <label>Current Weight (kg)</label>
-<input type="number" id="currentWeight" value="61" step="0.1">
+<input type="number" id="currentWeight" step="0.1" value="61">
 
 <label>Target Weight (kg)</label>
-<input type="number" id="targetWeight" value="50" step="0.1">
+<input type="number" id="targetWeight" step="0.1" value="50">
 
 <label>Target Date</label>
 <input type="date" id="targetDate" value="2026-02-01">
 
 <button onclick="updateGoal()">Update Goal</button>
-<div class="result" id="goalResult"></div>
+<div id="goalResult"></div>
+<div id="predictionText"></div>
+</div>
 
+<div class="section">
+<h3>Body Metrics</h3>
+
+<label>BMI</label>
+<div id="bmiResult">0</div>
+
+<label>Body Fat % (Navy Method)</label>
+<div id="bfResult">0%</div>
+
+<h4>Body Fat Category</h4>
+<div id="bfCategory" style="font-weight:600"></div>
+
+<h4>Body Fat Visualizer</h4>
+<div id="bfBar" style="width:100%;height:14px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
+  <div id="bfFill" style="height:100%;width:0%;background:#0ea5a4"></div>
+</div>
+
+<h4>Lean Body Mass (LBM)</h4>
+<div id="lbmResult">0 kg</div>
+
+<canvas id="bfChart" height="160"></canvas>
+</div>
+
+<label>Body Fat % (Navy Method)</label>
+<div id="bfResult">0%</div>
+
+<h4>Body Fat Visualizer</h4>
+<div id="bfBar" style="width:100%;height:14px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
+  <div id="bfFill" style="height:100%;width:0%;background:#0ea5a4"></div>
+</div>
+</div>
+
+<div class="section">
+<h3>Charts</h3>
+
+<!-- Calories Chart -->
+<canvas id="calChart" height="180"></canvas>
+
+<!-- Deficit Chart -->
+<canvas id="defChart" height="180"></canvas>
+
+<!-- Weight Trend Chart -->
+<canvas id="weightChart" height="180"></canvas>
+
+<!-- Body Fat % Chart -->
+<canvas id="bfChart" height="180"></canvas>
+</div>
+
+<div class="section">
+<h3>Export</h3>
+<button onclick="exportCSV()">Download CSV</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let meals = [];
+let meals = JSON.parse(localStorage.getItem('meals')||'[]');
+let customBmr = +localStorage.getItem('customBmr')||0;
+let darkMode = localStorage.getItem('darkMode')==="1";
+let calChart, defChart, weightChart;
+
+document.getElementById('customBmr').value = customBmr;
+if(darkMode) document.body.classList.add('dark');
 
 document.getElementById("mealDate").valueAsDate = new Date();
 document.getElementById("viewDate").valueAsDate = new Date();
 
+function toggleDarkMode(){
+  darkMode=!darkMode;
+  localStorage.setItem('darkMode',darkMode?1:0);
+  document.body.classList.toggle('dark');
+}
+
 function calcBMR(){
-  const sex=document.getElementById("sex").value;
-  const age=+document.getElementById("age").value;
+  const sex=sex.value, age=+document.getElementById("age").value;
   const weight=+document.getElementById("weight").value;
   const height=+document.getElementById("height").value;
-
   let bmr = 10*weight + 6.25*height - 5*age + (sex==="male"?5:-161);
-  document.getElementById("bmrResult").innerText = "BMR: "+Math.round(bmr)+" kcal";
-  document.getElementById("bmrVal").innerText = Math.round(bmr);
+  document.getElementById("bmrVal").innerText=Math.round(bmr);
+  document.getElementById("bmrResult").innerText="BMR: "+Math.round(bmr)+" kcal";
   updateResults();
 }
+
+function applyCustomBMR(){
+  customBmr = +document.getElementById('customBmr').value;
+  localStorage.setItem('customBmr',customBmr);
+  if(customBmr < 900) document.getElementById('bmrWarning').innerText = "Warning: BMR too low!";
+  else document.getElementById('bmrWarning').innerText='';
+  updateResults();
+}
+
+function updateBMRMode(){ updateResults(); }
 
 function addMeal(){
-  const date=document.getElementById("mealDate").value;
-  const name=document.getElementById("mealName").value;
-  const cal=+document.getElementById("mealCalories").value;
+  const date=mealDate.value, name=mealName.value, cal=+mealCalories.value;
   if(!date||!name||!cal) return;
-
   meals.push({date,name,cal});
-  renderMeals();
-  updateResults();
-
-  document.getElementById("mealName").value="";
-  document.getElementById("mealCalories").value="";
+  localStorage.setItem('meals',JSON.stringify(meals));
+  renderMeals(); updateResults();
+  mealName.value=""; mealCalories.value="";
 }
 
-function deleteMeal(index){
-  meals.splice(index,1);
-  renderMeals();
-  updateResults();
+function editMeal(i){
+  let m=meals[i];
+  let newName=prompt("Edit meal name", m.name);
+  let newCal=+prompt("Edit calories", m.cal);
+  if(!newName||!newCal) return;
+  meals[i].name=newName; meals[i].cal=newCal;
+  localStorage.setItem('meals',JSON.stringify(meals));
+  renderMeals(); updateResults();
 }
+
+function deleteMeal(i){ meals.splice(i,1); localStorage.setItem('meals',JSON.stringify(meals)); renderMeals(); updateResults(); }
 
 function renderMeals(){
-  const tbody=document.getElementById("mealTable");
-  tbody.innerHTML="";
-  meals.forEach((m,index)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${m.date}</td>
-      <td>${m.name}</td>
-      <td>${m.cal}</td>
-      <td><button class="delete-btn" onclick="deleteMeal(${index})">Delete</button></td>
-    `;
-    tbody.appendChild(tr);
+  mealTable.innerHTML="";
+  meals.forEach((m,i)=>{
+    mealTable.innerHTML+=`<tr>
+      <td>${m.date}</td><td>${m.name}</td><td>${m.cal}</td>
+      <td><button onclick="editMeal(${i})">Edit</button></td>
+      <td><button class='delete-btn' onclick="deleteMeal(${i})">X</button></td>
+    </tr>`;
   });
 }
 
 function updateResults(){
-  const viewDate=document.getElementById("viewDate").value;
-  const total = meals.filter(m=>m.date===viewDate).reduce((s,m)=>s+m.cal,0);
-  document.getElementById("totalCals").innerText=total;
-
-  const bmr=+document.getElementById("bmrVal").innerText||0;
-  const deficit=bmr-total;
-  document.getElementById("deficitVal").innerText=deficit;
-
-  const status=document.getElementById("statusText");
-  if(deficit>0){
-    status.innerText="You are in a calorie deficit ✅";
-    status.style.color="green";
-  }else{
-    status.innerText="You are in a calorie surplus ❌";
-    status.style.color="red";
-  }
+  const view=viewDate.value;
+  const total = meals.filter(m=>m.date===view).reduce((s,m)=>s+m.cal,0);
+  totalCals.innerText=total;
+  let bmr = (bmrMode.value==="custom" && customBmr>0)? customBmr : +bmrVal.innerText;
+  const deficit = bmr-total;
+  deficitVal.innerText=deficit;
+  statusText.innerText = deficit>0? "Calorie Deficit ✓" : "Calorie Surplus ✗";
+  statusText.style.color = deficit>0?"green":"red";
+  drawCharts();
 }
 
 function updateGoal(){
-  const cw=+document.getElementById("currentWeight").value;
-  const tw=+document.getElementById("targetWeight").value;
-  const td=new Date(document.getElementById("targetDate").value);
-  const now=new Date();
-
-  const diff=cw-tw;
-  const days=Math.max(1,Math.ceil((td-now)/(1000*60*60*24)));
-  const perWeek=(diff/(days/7)).toFixed(2);
-
-  document.getElementById("goalResult").innerText =
-    `Need to lose ${diff} kg in ${days} days (~${perWeek} kg/week)`;
+  let cw=+currentWeight.value, tw=+targetWeight.value;
+  let td=new Date(targetDate.value); let today=new Date();
+  let diff=cw-tw; let days=Math.ceil((td-today)/(86400000));
+  let perWeek=(diff/(days/7)).toFixed(2);
+  goalResult.innerText = `Lose ${diff} kg in ${days} days (~${perWeek} kg/week)`;
+  predictionText.innerText = `Estimated Fat Loss per week: ${(perWeek*7700).toFixed(0)} kcal`;
 }
 
-calcBMR();
-</script>
+function drawCharts(){
+  let dates=[]; let cal=[]; let def=[];
+  let bmr=(bmrMode.value==="custom"?customBmr:+bmrVal.innerText);
 
+  let sorted = [...meals].sort((a,b)=>a.date.localeCompare(b.date));
+  let map={};
+  sorted.forEach(m=>{map[m.date]=(map[m.date]||0)+m.cal});
+
+  for(const d in map){dates.push(d);cal.push(map[d]);def.push(bmr-map[d]);}
+
+  if(calChart) calChart.destroy();
+  calChart = new Chart(calChart, {
+    type:'bar', data:{labels:dates, datasets:[{label:'Calories',data:cal}]} });
+
+  if(defChart) defChart.destroy();
+  defChart = new Chart(defChart, {
+    type:'line', data:{labels:dates, datasets:[{label:'Deficit',data:def}]} });
+}
+
+function exportCSV(){
+  let rows=["date,meal,calories"]; meals.forEach(m=>rows.push(`${m.date},${m.name},${m.cal}`));
+  let blob=new Blob([rows.join("
+")],{type:"text/csv"});
+  let url=URL.createObjectURL(blob);
+  let a=document.createElement("a"); a.href=url; a.download="meals.csv"; a.click();
+}
+
+renderMeals(); calcBMR(); updateResults();
+</script>
 </body>
 </html>
