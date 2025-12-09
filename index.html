@@ -9,20 +9,16 @@
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
       background:#f7fafc;
       margin:0;
-      padding:20px;
+      padding:16px;
       color:#0f172a
     }
-    .card{
-      background:#fff;
-      padding:16px;
-      border-radius:12px;
-      margin-bottom:16px;
-      box-shadow:0 5px 20px rgba(0,0,0,0.06)
-    }
+    h1{margin-bottom:10px}
+    hr{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
+    label{font-weight:600;font-size:14px}
     input,select,button{
       width:100%;
       padding:10px;
-      margin-top:6px;
+      margin:6px 0 12px;
       border-radius:8px;
       border:1px solid #e5e7eb
     }
@@ -33,78 +29,82 @@
       cursor:pointer
     }
     table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:8px;border-bottom:1px solid #eee}
-    .result{font-weight:600;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    .danger{background:#ef4444}
+    .delete-btn{background:#ef4444}
+    .result{font-weight:600;margin:6px 0}
   </style>
 </head>
 <body>
 
 <h1>Calorie & BMR Fat-loss Checker</h1>
 
-<div class="card">
-  <h3>1) BMR Calculator</h3>
-  <label>Sex</label>
-  <select id="sex">
-    <option value="male">Male</option>
-    <option value="female">Female</option>
-  </select>
-  <label>Age</label>
-  <input type="number" id="age" value="18">
-  <label>Weight (kg)</label>
-  <input type="number" id="weight" step="0.1" value="61">
-  <label>Height (cm)</label>
-  <input type="number" id="height" step="0.1" value="165">
+<label>Sex</label>
+<select id="sex">
+  <option value="male">Male</option>
+  <option value="female">Female</option>
+</select>
 
-  <button onclick="calcBMR()">Calculate BMR</button>
-  <div class="result" id="bmrResult"></div>
-</div>
+<label>Age</label>
+<input type="number" id="age" value="18">
 
-<div class="card">
-  <h3>2) Meal Logger</h3>
-  <label>Date</label>
-  <input type="date" id="mealDate">
+<label>Weight (kg)</label>
+<input type="number" id="weight" step="0.1" value="61">
 
-  <label>Meal</label>
-  <input type="text" id="mealName">
+<label>Height (cm)</label>
+<input type="number" id="height" step="0.1" value="165">
 
-  <label>Calories (kcal)</label>
-  <input type="number" id="mealCalories">
+<button onclick="calcBMR()">Calculate BMR</button>
+<div class="result" id="bmrResult"></div>
 
-  <button onclick="addMeal()">Add Meal</button>
+<hr>
 
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Meal</th><th>Calories</th></tr>
-    </thead>
-    <tbody id="mealTable"></tbody>
-  </table>
-</div>
+<label>Meal Date</label>
+<input type="date" id="mealDate">
 
-<div class="card">
-  <h3>3) Daily Results</h3>
-  <label>View Date</label>
-  <input type="date" id="viewDate">
+<label>Meal Name</label>
+<input type="text" id="mealName">
 
-  <div class="result">Total Calories: <span id="totalCals">0</span> kcal</div>
-  <div class="result">BMR: <span id="bmrVal">0</span> kcal</div>
-  <div class="result">Deficit: <span id="deficitVal">0</span> kcal</div>
-  <div class="result" id="statusText"></div>
-</div>
+<label>Calories (kcal)</label>
+<input type="number" id="mealCalories">
 
-<div class="card">
-  <h3>4) Weight Goal Tracker</h3>
-  <label>Current Weight (kg)</label>
-  <input type="number" id="currentWeight" value="61" step="0.1">
+<button onclick="addMeal()">Add Meal</button>
 
-  <label>Target Weight (kg)</label>
-  <input type="number" id="targetWeight" value="50" step="0.1">
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Meal</th>
+      <th>Calories</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="mealTable"></tbody>
+</table>
 
-  <label>Target Date</label>
-  <input type="date" id="targetDate" value="2026-02-01">
+<hr>
 
-  <button onclick="updateGoal()">Update Goal</button>
-  <div class="result" id="goalResult"></div>
-</div>
+<label>View Date</label>
+<input type="date" id="viewDate">
+
+<div class="result">Total Calories: <span id="totalCals">0</span> kcal</div>
+<div class="result">BMR: <span id="bmrVal">0</span> kcal</div>
+<div class="result">Deficit: <span id="deficitVal">0</span> kcal</div>
+<div class="result" id="statusText"></div>
+
+<hr>
+
+<label>Current Weight (kg)</label>
+<input type="number" id="currentWeight" value="61" step="0.1">
+
+<label>Target Weight (kg)</label>
+<input type="number" id="targetWeight" value="50" step="0.1">
+
+<label>Target Date</label>
+<input type="date" id="targetDate" value="2026-02-01">
+
+<button onclick="updateGoal()">Update Goal</button>
+<div class="result" id="goalResult"></div>
 
 <script>
 let meals = [];
@@ -138,14 +138,25 @@ function addMeal(){
   document.getElementById("mealCalories").value="";
 }
 
+function deleteMeal(index){
+  meals.splice(index,1);
+  renderMeals();
+  updateResults();
+}
+
 function renderMeals(){
   const tbody=document.getElementById("mealTable");
   tbody.innerHTML="";
-  meals.forEach(m=>{
+  meals.forEach((m,index)=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${m.date}</td><td>${m.name}</td><td>${m.cal}</td>`;
+    tr.innerHTML=`
+      <td>${m.date}</td>
+      <td>${m.name}</td>
+      <td>${m.cal}</td>
+      <td><button class="delete-btn" onclick="deleteMeal(${index})">Delete</button></td>
+    `;
     tbody.appendChild(tr);
-  })
+  });
 }
 
 function updateResults(){
