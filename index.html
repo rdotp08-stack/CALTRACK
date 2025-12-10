@@ -1,274 +1,494 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Calorie & BMR Fat-loss Checker — Full Version</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calorie & BMR Fat-loss Checker — Fixed</title>
+<link rel="stylesheet" href="" />
 <style>
+  :root{--accent:#0ea5a4;--danger:#ef4444}
   body{
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    background:#f4f4f5;
-    color:#0f172a;
-    margin:0;padding:16px;
-    transition:0.3s;
+    background:#f4f4f5;color:#0f172a;margin:0;padding:16px;transition:0.25s;
   }
-  .dark{background:#0f172a;color:#f4f4f5;}
+  .dark{background:#0f172a;color:#f4f4f5}
   h1{font-size:22px;margin-bottom:10px}
   label{font-weight:600;font-size:14px}
-  input,select,button{
-    width:100%;padding:10px;margin:6px 0 12px;
-    border-radius:10px;border:1px solid #d4d4d8;
-    font-size:14px;
-  }
-  button{background:#0ea5a4;color:#fff;font-weight:600;cursor:pointer}
-  .delete-btn{background:#ef4444;color:white;border:none;padding:6px 10px;border-radius:6px}
+  input,select,button{width:100%;padding:10px;margin:6px 0 12px;border-radius:10px;border:1px solid #d4d4d8;font-size:14px}
+  button{background:var(--accent);color:#fff;font-weight:600;cursor:pointer;border:0}
+  .delete-btn{background:var(--danger);color:#fff;border:none;padding:6px 10px;border-radius:6px}
   .section{margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #e5e7eb}
   table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
   th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}
-  .toggle{margin:10px 0;font-size:14px;font-weight:600;cursor:pointer}
-  canvas{margin-top:25px}
+  .small{font-size:13px}
+  canvas{margin-top:12px;max-width:100%}
+  #bfBar{width:100%;height:14px;background:#e5e7eb;border-radius:10px;overflow:hidden}
+  #bfFill{height:100%;width:0%;background:var(--accent);transition:width .4s}
+  .row{display:flex;gap:8px}
+  .col{flex:1}
 </style>
 </head>
 <body>
 
-<h1>Calorie & BMR Fat-loss Checker</h1>
+<h1>Calorie & BMR Fat-loss Checker — Fixed</h1>
 <button onclick="toggleDarkMode()">Toggle Dark Mode 🌙</button>
 
+<!-- BMR / inputs -->
 <div class="section">
-<label>Use Custom BMR?</label>
-<select id="bmrMode" onchange="updateBMRMode()">
-  <option value="calc">Use Calculated BMR</option>
-  <option value="custom">Use Custom BMR</option>
-</select>
+  <label>BMR Mode</label>
+  <select id="bmrMode">
+    <option value="calc">Use Calculated BMR</option>
+    <option value="custom">Use Custom BMR</option>
+  </select>
 
-<label>Sex</label>
-<select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
+  <div class="row">
+    <div class="col">
+      <label>Sex</label>
+      <select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
+    </div>
+    <div class="col">
+      <label>Age</label>
+      <input type="number" id="age" value="18" min="0" />
+    </div>
+  </div>
 
-<label>Age</label>
-<input type="number" id="age" value="18">
+  <div class="row">
+    <div class="col">
+      <label>Weight (kg)</label>
+      <input type="number" id="weight" value="61" step="0.1" />
+    </div>
+    <div class="col">
+      <label>Height (cm)</label>
+      <input type="number" id="height" value="165" step="0.1" />
+    </div>
+  </div>
 
-<label>Weight (kg)</label>
-<input type="number" id="weight" value="61" step="0.1">
+  <button onclick="calculateBMR()">Calculate BMR</button>
 
-<label>Height (cm)</label>
-<input type="number" id="height" value="165" step="0.1">
+  <label>Custom BMR</label>
+  <input type="number" id="customBmr" placeholder="e.g. 1500" />
 
-<button onclick="calcBMR()">Calculate BMR</button>
-<div id="bmrResult"></div>
+  <div id="bmrWarning" style="color:var(--danger);font-weight:600"></div>
 
-<label>Custom BMR</label>
-<input type="number" id="customBmr" oninput="applyCustomBMR()">
-<div id="bmrWarning" style="color:red;font-weight:600"></div>
+  <div style="margin-top:8px;font-weight:700">
+    <div>BMR: <span id="bmrVal">0</span> kcal</div>
+    <div class="small">(If you choose <strong>Use Custom BMR</strong>, the custom value will be used.)</div>
+  </div>
 </div>
 
+<!-- Meal input -->
 <div class="section">
-<label>Meal Date</label>
-<input type="date" id="mealDate">
+  <label>Meal Date</label>
+  <input type="date" id="mealDate" />
 
-<label>Meal Name</label>
-<input type="text" id="mealName">
+  <label>Meal Name</label>
+  <input type="text" id="mealName" />
 
-<label>Calories (kcal)</label>
-<input type="number" id="mealCalories">
+  <label>Calories (kcal)</label>
+  <input type="number" id="mealCalories" />
 
-<button onclick="addMeal()">Add Meal</button>
+  <div class="row">
+    <div class="col"><button onclick="addMeal()">Add Meal</button></div>
+    <div class="col"><button onclick="exportCSV()">Download CSV</button></div>
+  </div>
 
-<table>
-<thead><tr><th>Date</th><th>Meal</th><th>Calories</th><th>Edit</th><th>Delete</th></tr></thead>
-<tbody id="mealTable"></tbody>
-</table>
+  <table>
+    <thead><tr><th>Date</th><th>Meal</th><th>Calories</th><th>Edit</th><th>Delete</th></tr></thead>
+    <tbody id="mealTable"></tbody>
+  </table>
 </div>
 
+<!-- Daily summary -->
 <div class="section">
-<label>View Date</label>
-<input type="date" id="viewDate" onchange="updateResults()">
+  <label>View Date</label>
+  <input type="date" id="viewDate" />
 
-<div>Total Calories: <span id="totalCals">0</span> kcal</div>
-<div>BMR: <span id="bmrVal">0</span> kcal</div>
-<div>Deficit: <span id="deficitVal">0</span> kcal</div>
-<div id="statusText" style="font-weight:600"></div>
+  <div>Total Calories: <strong id="totalCals">0</strong> kcal</div>
+  <div>BMR used: <strong id="bmrUsed">0</strong> kcal</div>
+  <div>Deficit: <strong id="deficitVal">0</strong> kcal</div>
+  <div id="statusText" style="font-weight:700"></div>
 </div>
 
+<!-- Weight goal & logging -->
 <div class="section">
-<h3>Weight Goal</h3>
-<label>Current Weight (kg)</label>
-<input type="number" id="currentWeight" step="0.1" value="61">
+  <h3>Weight & Goals</h3>
+  <div class="row">
+    <div class="col">
+      <label>Current Weight (kg)</label>
+      <input type="number" id="currentWeight" step="0.1" value="61" />
+    </div>
+    <div class="col">
+      <label>Target Weight (kg)</label>
+      <input type="number" id="targetWeight" step="0.1" value="50" />
+    </div>
+  </div>
 
-<label>Target Weight (kg)</label>
-<input type="number" id="targetWeight" step="0.1" value="50">
+  <label>Target Date</label>
+  <input type="date" id="targetDate" value="" />
 
-<label>Target Date</label>
-<input type="date" id="targetDate" value="2026-02-01">
+  <div class="row">
+    <div class="col"><button onclick="updateGoal()">Update Goal</button></div>
+    <div class="col"><button onclick="logBodyMetrics()">Log Weight & BF</button></div>
+  </div>
 
-<button onclick="updateGoal()">Update Goal</button>
-<div id="goalResult"></div>
-<div id="predictionText"></div>
+  <div id="goalResult" style="margin-top:8px;font-weight:600"></div>
+  <div id="predictionText" class="small"></div>
 </div>
 
+<!-- Body metrics -->
 <div class="section">
-<h3>Body Metrics</h3>
+  <h3>Body Metrics</h3>
 
-<label>BMI</label>
-<div id="bmiResult">0</div>
+  <label>BMI</label>
+  <div id="bmiResult">0</div>
 
-<label>Body Fat % (Navy Method)</label>
-<div id="bfResult">0%</div>
+  <label>Body Fat % (U.S. Navy)</label>
+  <div id="bfResult">0%</div>
 
-<h4>Body Fat Category</h4>
-<div id="bfCategory" style="font-weight:600"></div>
+  <h4>Body Fat Category</h4>
+  <div id="bfCategory" style="font-weight:600"></div>
 
-<h4>Body Fat Visualizer</h4>
-<div id="bfBar" style="width:100%;height:14px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
-  <div id="bfFill" style="height:100%;width:0%;background:#0ea5a4"></div>
+  <h4>Body Fat Visualizer</h4>
+  <div id="bfBar"><div id="bfFill"></div></div>
+
+  <h4>Lean Body Mass (LBM)</h4>
+  <div id="lbmResult">0 kg</div>
+
+  <div style="margin-top:10px">
+    <label>Neck (cm) - required for Navy BF</label>
+    <input type="number" id="neck" placeholder="e.g. 38" step="0.1" />
+    <label>Waist (cm)</label>
+    <input type="number" id="waist" placeholder="e.g. 85" step="0.1" />
+    <label>Hips (cm) — women only</label>
+    <input type="number" id="hips" placeholder="e.g. 95" step="0.1" />
+  </div>
 </div>
 
-<h4>Lean Body Mass (LBM)</h4>
-<div id="lbmResult">0 kg</div>
-
-<canvas id="bfChart" height="160"></canvas>
-</div>
-
-<label>Body Fat % (Navy Method)</label>
-<div id="bfResult">0%</div>
-
-<h4>Body Fat Visualizer</h4>
-<div id="bfBar" style="width:100%;height:14px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
-  <div id="bfFill" style="height:100%;width:0%;background:#0ea5a4"></div>
-</div>
-</div>
-
+<!-- Charts -->
 <div class="section">
-<h3>Charts"}]}</h3>
-<canvas id="calChart" height="180"></canvas>
-<canvas id="defChart" height="180"></canvas>
-<canvas id="weightChart" height="180"></canvas>
-</div>
-
-<div class="section">
-<h3>Export</h3>
-<button onclick="exportCSV()">Download CSV</button>
+  <h3>Charts</h3>
+  <canvas id="calChart" height="140"></canvas>
+  <canvas id="defChart" height="140"></canvas>
+  <canvas id="weightChart" height="140"></canvas>
+  <canvas id="bfChart" height="140"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let meals = JSON.parse(localStorage.getItem('meals')||'[]');
-let customBmr = +localStorage.getItem('customBmr')||0;
-let darkMode = localStorage.getItem('darkMode')==="1";
-let calChart, defChart, weightChart;
+/* ---------------------
+   Helpers & DOM refs
+   --------------------- */
+const $ = id => document.getElementById(id);
 
-document.getElementById('customBmr').value = customBmr;
-if(darkMode) document.body.classList.add('dark');
+const mealDate = $('mealDate'), mealName = $('mealName'), mealCalories = $('mealCalories');
+const mealTable = $('mealTable');
+const viewDate = $('viewDate'), totalCals = $('totalCals');
+const bmrVal = $('bmrVal'), bmrMode = $('bmrMode'), customBmrEl = $('customBmr'), bmrUsed = $('bmrUsed');
+const deficitVal = $('deficitVal'), statusText = $('statusText');
+const bmiResult = $('bmiResult'), bfResult = $('bfResult'), bfFill = $('bfFill'), bfCategory = $('bfCategory'), lbmResult = $('lbmResult');
+const neckEl = $('neck'), waistEl = $('waist'), hipsEl = $('hips');
+const currentWeight = $('currentWeight'), targetWeight = $('targetWeight'), targetDate = $('targetDate');
+const goalResult = $('goalResult'), predictionText = $('predictionText');
+const bmrWarning = $('bmrWarning');
 
-document.getElementById("mealDate").valueAsDate = new Date();
-document.getElementById("viewDate").valueAsDate = new Date();
+let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+let customBmr = +localStorage.getItem('customBmr') || 0;
+let darkMode = localStorage.getItem('darkMode') === '1';
 
-function toggleDarkMode(){
-  darkMode=!darkMode;
-  localStorage.setItem('darkMode',darkMode?1:0);
-  document.body.classList.toggle('dark');
-}
+// metric histories (for charts)
+let bfHistory = JSON.parse(localStorage.getItem('bfHistory') || '[]'); // [{date, bf}]
+let weightHistory = JSON.parse(localStorage.getItem('weightHistory') || '[]'); // [{date, w}]
 
-function calcBMR(){
-  const sex=sex.value, age=+document.getElementById("age").value;
-  const weight=+document.getElementById("weight").value;
-  const height=+document.getElementById("height").value;
-  let bmr = 10*weight + 6.25*height - 5*age + (sex==="male"?5:-161);
-  document.getElementById("bmrVal").innerText=Math.round(bmr);
-  document.getElementById("bmrResult").innerText="BMR: "+Math.round(bmr)+" kcal";
-  updateResults();
-}
+customBmrEl.value = customBmr;
+if (darkMode) document.body.classList.add('dark');
+mealDate.valueAsDate = new Date();
+viewDate.valueAsDate = new Date();
 
-function applyCustomBMR(){
-  customBmr = +document.getElementById('customBmr').value;
-  localStorage.setItem('customBmr',customBmr);
-  if(customBmr < 900) document.getElementById('bmrWarning').innerText = "Warning: BMR too low!";
-  else document.getElementById('bmrWarning').innerText='';
-  updateResults();
-}
+/* ---------------------
+   Charts
+   --------------------- */
+let calChart=null, defChart=null, weightChart=null, bfChart=null;
 
-function updateBMRMode(){ updateResults(); }
+function destroyIfExists(ch) { if (ch && typeof ch.destroy === 'function') ch.destroy(); }
 
-function addMeal(){
-  const date=mealDate.value, name=mealName.value, cal=+mealCalories.value;
-  if(!date||!name||!cal) return;
-  meals.push({date,name,cal});
-  localStorage.setItem('meals',JSON.stringify(meals));
-  renderMeals(); updateResults();
-  mealName.value=""; mealCalories.value="";
-}
+function drawCharts() {
+  // build calorie map by date (sorted)
+  const sortedMeals = [...meals].sort((a,b)=>a.date.localeCompare(b.date));
+  const calMap = {};
+  sortedMeals.forEach(m => { calMap[m.date] = (calMap[m.date]||0) + (Number(m.cal)||0); });
 
-function editMeal(i){
-  let m=meals[i];
-  let newName=prompt("Edit meal name", m.name);
-  let newCal=+prompt("Edit calories", m.cal);
-  if(!newName||!newCal) return;
-  meals[i].name=newName; meals[i].cal=newCal;
-  localStorage.setItem('meals',JSON.stringify(meals));
-  renderMeals(); updateResults();
-}
+  const dates = Object.keys(calMap).sort();
+  const calData = dates.map(d => calMap[d]);
+  const bmrUsedValue = computeBMRUsed();
 
-function deleteMeal(i){ meals.splice(i,1); localStorage.setItem('meals',JSON.stringify(meals)); renderMeals(); updateResults(); }
+  const defData = dates.map(d => bmrUsedValue - (calMap[d] || 0));
 
-function renderMeals(){
-  mealTable.innerHTML="";
-  meals.forEach((m,i)=>{
-    mealTable.innerHTML+=`<tr>
-      <td>${m.date}</td><td>${m.name}</td><td>${m.cal}</td>
-      <td><button onclick="editMeal(${i})">Edit</button></td>
-      <td><button class='delete-btn' onclick="deleteMeal(${i})">X</button></td>
-    </tr>`;
+  // Calories chart
+  destroyIfExists(calChart);
+  const calCtx = $('calChart').getContext('2d');
+  calChart = new Chart(calCtx, {
+    type: 'bar',
+    data: { labels: dates, datasets: [{ label: 'Calories', data: calData }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // Deficit chart
+  destroyIfExists(defChart);
+  const defCtx = $('defChart').getContext('2d');
+  defChart = new Chart(defCtx, {
+    type: 'line',
+    data: { labels: dates, datasets: [{ label: 'Deficit', data: defData, fill: true }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // Weight chart (from weightHistory)
+  destroyIfExists(weightChart);
+  const wDates = weightHistory.map(x=>x.date);
+  const wData = weightHistory.map(x=>x.w);
+  const wCtx = $('weightChart').getContext('2d');
+  weightChart = new Chart(wCtx, {
+    type: 'line',
+    data: { labels: wDates, datasets: [{ label: 'Weight (kg)', data: wData }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // BF chart
+  destroyIfExists(bfChart);
+  const bfDates = bfHistory.map(x=>x.date);
+  const bfData = bfHistory.map(x=>x.bf);
+  const bfCtx = $('bfChart').getContext('2d');
+  bfChart = new Chart(bfCtx, {
+    type: 'line',
+    data: { labels: bfDates, datasets: [{ label: 'Body Fat %', data: bfData }] },
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 
-function updateResults(){
-  const view=viewDate.value;
-  const total = meals.filter(m=>m.date===view).reduce((s,m)=>s+m.cal,0);
-  totalCals.innerText=total;
-  let bmr = (bmrMode.value==="custom" && customBmr>0)? customBmr : +bmrVal.innerText;
-  const deficit = bmr-total;
-  deficitVal.innerText=deficit;
-  statusText.innerText = deficit>0? "Calorie Deficit ✓" : "Calorie Surplus ✗";
-  statusText.style.color = deficit>0?"green":"red";
+/* ---------------------
+   Meals functions
+   --------------------- */
+function saveMeals() { localStorage.setItem('meals', JSON.stringify(meals)); }
+function addMeal(){
+  const d = mealDate.value, name = mealName.value.trim(), cal = Number(mealCalories.value);
+  if(!d || !name || !cal) return alert('Please fill date, name and calories.');
+  meals.push({date:d, name, cal});
+  saveMeals(); renderMeals(); updateSummary();
+  mealName.value=''; mealCalories.value='';
+}
+function renderMeals(){
+  mealTable.innerHTML = '';
+  meals.forEach((m,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m.date}</td><td>${m.name}</td><td>${m.cal}</td>
+      <td><button onclick="editMeal(${i})">Edit</button></td>
+      <td><button class="delete-btn" onclick="deleteMeal(${i})">X</button></td>`;
+    mealTable.appendChild(tr);
+  });
+}
+function editMeal(i){
+  const m = meals[i];
+  const newName = prompt('Edit meal name', m.name);
+  const newCal = Number(prompt('Edit calories', m.cal));
+  if(!newName || !newCal) return;
+  meals[i].name = newName; meals[i].cal = newCal;
+  saveMeals(); renderMeals(); updateSummary();
+}
+function deleteMeal(i){ if(!confirm('Delete this meal?')) return; meals.splice(i,1); saveMeals(); renderMeals(); updateSummary(); }
+
+/* ---------------------
+   BMR + BMI + BF calculations
+   --------------------- */
+function calculateBMR(){
+  const sex = $('sex').value, age = Number($('age').value), w = Number($('weight').value), h = Number($('height').value);
+  const bmr = Math.round(10*w + 6.25*h - 5*age + (sex === 'male' ? 5 : -161));
+  bmrVal.innerText = bmr;
+  if (bmr < 900) bmrWarning.innerText = 'Calculated BMR is unusually low.';
+  else bmrWarning.innerText = '';
+  localStorage.setItem('customBmr', customBmr); // keep custom
+  updateSummary();
+}
+
+function applyCustomBMR(){
+  customBmr = Number(customBmrEl.value) || 0;
+  localStorage.setItem('customBmr', customBmr);
+  if(customBmr && customBmr < 900) bmrWarning.innerText = 'Warning: custom BMR very low!';
+  else bmrWarning.innerText = '';
+  updateSummary();
+}
+
+function computeBMRUsed(){
+  // returns the BMR used depending on mode
+  const mode = bmrMode.value;
+  if(mode === 'custom' && customBmr > 0) {
+    bmrUsed.innerText = customBmr;
+    return customBmr;
+  }
+  const b = Number(bmrVal.innerText) || 0;
+  bmrUsed.innerText = b;
+  return b;
+}
+
+/* BMI and Navy BF */
+function computeBMI(){
+  const w = Number($('weight').value), hcm = Number($('height').value);
+  if(!w || !hcm) return null;
+  const m = hcm/100;
+  const bmi = +(w / (m*m)).toFixed(2);
+  bmiResult.innerText = bmi;
+  return bmi;
+}
+
+function computeNavyBF(){
+  // U.S. Navy Method: different formula for men/women
+  const sex = $('sex').value;
+  const neck = Number(neckEl.value), waist = Number(waistEl.value), hips = Number(hipsEl.value);
+  const height = Number($('height').value);
+  // Need positive values
+  if(!neck || !waist || !height) return null;
+  // formula uses log10(cm) but original uses inches — we can use cm but convert to inches for standard formula
+  const toIn = cm => cm / 2.54;
+  const hIn = toIn(height), neckIn = toIn(neck), waistIn = toIn(waist), hipsIn = toIn(hips);
+  let bf;
+  if(sex === 'male'){
+    bf = 86.010 * Math.log10(waistIn - neckIn) - 70.041 * Math.log10(hIn) + 36.76;
+  } else {
+    if(!hips) return null;
+    bf = 163.205 * Math.log10(waistIn + hipsIn - neckIn) - 97.684 * Math.log10(hIn) - 78.387;
+  }
+  bf = +bf.toFixed(2);
+  bfResult.innerText = bf + '%';
+  // LBM (lean body mass) = weight * (1 - bf%)
+  const weight = Number($('weight').value);
+  const lbm = +(weight * (1 - bf/100)).toFixed(2);
+  lbmResult.innerText = lbm + ' kg';
+  // category
+  const cat = bfCategoryFromPercent(bf, sex);
+  bfCategory.innerText = cat;
+  // visualizer
+  bfFill.style.width = Math.min(100, Math.max(0, bf)) + '%';
+  return bf;
+}
+
+function bfCategoryFromPercent(bf, sex){
+  // simple categorization
+  if(bf === null || isNaN(bf)) return '';
+  if(sex === 'male'){
+    if(bf < 6) return 'Essential';
+    if(bf < 14) return 'Athletic';
+    if(bf < 18) return 'Fit';
+    if(bf < 25) return 'Average';
+    return 'Obese';
+  } else {
+    if(bf < 14) return 'Essential';
+    if(bf < 21) return 'Athletic';
+    if(bf < 25) return 'Fit';
+    if(bf < 32) return 'Average';
+    return 'Obese';
+  }
+}
+
+/* ---------------------
+   Summary & Logging
+   --------------------- */
+function updateSummary(){
+  // recalc BMI and BF when summary updates
+  computeBMI();
+  const bf = computeNavyBF();
+  // compute totals for selected date
+  const d = viewDate.value;
+  const total = meals.filter(m => m.date === d).reduce((s,m)=>s + Number(m.cal||0), 0);
+  totalCals.innerText = total;
+  const bmrUsedV = computeBMRUsed();
+  const deficit = bmrUsedV - total;
+  deficitVal.innerText = deficit;
+  statusText.innerText = deficit > 0 ? 'Calorie Deficit ✓' : 'Calorie Surplus ✗';
+  statusText.style.color = deficit > 0 ? 'green' : 'red';
+
+  // optionally add a BF/Weight history point — NOT automatic; user must press Log button
   drawCharts();
 }
 
 function updateGoal(){
-  let cw=+currentWeight.value, tw=+targetWeight.value;
-  let td=new Date(targetDate.value); let today=new Date();
-  let diff=cw-tw; let days=Math.ceil((td-today)/(86400000));
-  let perWeek=(diff/(days/7)).toFixed(2);
-  goalResult.innerText = `Lose ${diff} kg in ${days} days (~${perWeek} kg/week)`;
-  predictionText.innerText = `Estimated Fat Loss per week: ${(perWeek*7700).toFixed(0)} kcal`;
+  const cw = Number(currentWeight.value), tw = Number(targetWeight.value);
+  const td = new Date(targetDate.value || Date.now());
+  const today = new Date();
+  const diffKg = +(cw - tw).toFixed(2);
+  const days = Math.max(1, Math.ceil((td - today) / 86400000));
+  const perWeek = +(diffKg / (days/7)).toFixed(2);
+  goalResult.innerText = `Need to lose ${diffKg} kg in ${days} days (~${perWeek} kg/week)`;
+  predictionText.innerText = `Estimated kcal/week deficit required (approx): ${Math.round(perWeek * 7700)}`;
 }
 
-function drawCharts(){
-  let dates=[]; let cal=[]; let def=[];
-  let bmr=(bmrMode.value==="custom"?customBmr:+bmrVal.innerText);
-
-  let sorted = [...meals].sort((a,b)=>a.date.localeCompare(b.date));
-  let map={};
-  sorted.forEach(m=>{map[m.date]=(map[m.date]||0)+m.cal});
-
-  for(const d in map){dates.push(d);cal.push(map[d]);def.push(bmr-map[d]);}
-
-  if(calChart) calChart.destroy();
-  calChart = new Chart(calChart, {
-    type:'bar', data:{labels:dates, datasets:[{label:'Calories',data:cal}]} });
-
-  if(defChart) defChart.destroy();
-  defChart = new Chart(defChart, {
-    type:'line', data:{labels:dates, datasets:[{label:'Deficit',data:def}]} });
+/* ---------------------
+   Log body metrics (for charts)
+   --------------------- */
+function logBodyMetrics(){
+  const today = new Date().toISOString().slice(0,10);
+  const w = Number($('weight').value) || Number(currentWeight.value);
+  const bf = Number(bfResult.innerText.replace('%','')) || null;
+  if(!w) return alert('Set weight before logging.');
+  weightHistory.push({date: today, w});
+  localStorage.setItem('weightHistory', JSON.stringify(weightHistory));
+  if(bf !== null && !isNaN(bf)) {
+    bfHistory.push({date: today, bf});
+    localStorage.setItem('bfHistory', JSON.stringify(bfHistory));
+  }
+  drawCharts();
+  alert('Logged current weight and body-fat (if available).');
 }
 
+/* ---------------------
+   Export CSV
+   --------------------- */
 function exportCSV(){
-  let rows=["date,meal,calories"]; meals.forEach(m=>rows.push(`${m.date},${m.name},${m.cal}`));
-  let blob=new Blob([rows.join("
-")],{type:"text/csv"});
-  let url=URL.createObjectURL(blob);
-  let a=document.createElement("a"); a.href=url; a.download="meals.csv"; a.click();
+  const rows = [['date','meal','calories']];
+  meals.forEach(m => rows.push([m.date, m.name.replace(/"/g,'""'), m.cal]));
+  const csv = rows.map(r => r.map(cell => `"${String(cell)}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'meals.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
-renderMeals(); calcBMR(); updateResults();
+/* ---------------------
+   Utilities
+   --------------------- */
+function toggleDarkMode(){
+  darkMode = !darkMode;
+  localStorage.setItem('darkMode', darkMode ? '1' : '0');
+  document.body.classList.toggle('dark', darkMode);
+}
+
+/* ---------------------
+   Init & event wiring
+   --------------------- */
+renderMeals();
+calculateBMR();
+updateSummary();
+drawCharts();
+
+viewDate.addEventListener('change', updateSummary);
+bmrMode.addEventListener('change', updateSummary);
+customBmrEl.addEventListener('input', applyCustomBMR);
+$('age').addEventListener('input', calculateBMR);
+$('height').addEventListener('input', calculateBMR);
+$('weight').addEventListener('input', calculateBMR);
+neckEl.addEventListener('input', updateSummary);
+waistEl.addEventListener('input', updateSummary);
+hipsEl.addEventListener('input', updateSummary);
+
+// Expose a few functions globally used by inline onclick buttons
+window.addMeal = addMeal;
+window.editMeal = editMeal;
+window.deleteMeal = deleteMeal;
+window.exportCSV = exportCSV;
+window.calculateBMR = calculateBMR;
+window.applyCustomBMR = applyCustomBMR;
+window.updateGoal = updateGoal;
+window.toggleDarkMode = toggleDarkMode;
+window.logBodyMetrics = logBodyMetrics;
 </script>
 </body>
 </html>
